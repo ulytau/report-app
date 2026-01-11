@@ -5,7 +5,19 @@ export const DAYS_EN_MAP: Record<string, string> = {
   "Thursday": "Чт", "Friday": "Пт", "Saturday": "Сб", "Sunday": "Вс"
 };
 
+/** 
+ * Vibrant, high-contrast palette for clear distinction between categories
+ * Based on professional data viz palettes (Rose, Blue, Emerald, Amber, Violet, Pink, Cyan, Orange, Indigo, Lime)
+ */
 export const CHART_COLORS = [
-  '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', 
-  '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c', '#d0ed57'
+  '#F43F5E', // Rose
+  '#3B82F6', // Blue
+  '#10B981', // Emerald
+  '#F59E0B', // Amber
+  '#8B5CF6', // Violet
+  '#EC4899', // Pink
+  '#06B6D4', // Cyan
+  '#F97316', // Orange
+  '#6366F1', // Indigo
+  '#84CC16'  // Lime
 ];

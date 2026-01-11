@@ -254,8 +254,10 @@ const App: React.FC = () => {
                         cy="45%"
                         innerRadius={80}
                         outerRadius={120}
-                        paddingAngle={5}
+                        paddingAngle={2}
                         dataKey="value"
+                        stroke="#fff"
+                        strokeWidth={2}
                       >
                         {data.productShare.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
