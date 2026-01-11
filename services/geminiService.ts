@@ -6,16 +6,19 @@ export const getAIInsights = async (data: ReportData): Promise<AIInsight> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
   const prompt = `
-    As a cafe business consultant, analyze this sales report data:
-    Total Revenue: ${data.totalRevenue}
-    Average Check: ${data.avgCheck}
+    As a cafe business consultant, analyze this sales report data. 
+    IMPORTANT: All currency values are in Kazakhstani Tenge (KZT / ₸). Do not use or mention Rubles or any other currency.
+    
+    Total Revenue: ${data.totalRevenue} KZT
+    Average Check: ${data.avgCheck} KZT
     Total Transactions: ${data.totalTransactions}
     Top 3 Products: ${data.topProductsByRevenue.slice(0, 3).map(p => p.name).join(', ')}
     Busiest Hours: ${data.revenueByHour.sort((a, b) => b.value - a.value).slice(0, 3).map(h => h.hour).join(', ')}
     Busiest Days: ${data.revenueByDay.sort((a, b) => b.value - a.value).slice(0, 2).map(d => d.day).join(', ')}
 
     Provide a concise analysis in Russian for the cafe administrator.
-    Include a summary, 3 key highlights, and 3 actionable recommendations.
+    Include a summary, 3 key highlights, and 3 actionable recommendations. 
+    Make sure to use '₸' or 'тенге' when referring to money.
   `;
 
   try {
@@ -51,7 +54,7 @@ export const getAIInsights = async (data: ReportData): Promise<AIInsight> => {
   } catch (error) {
     console.error("AI Insight Error:", error);
     return {
-      summary: "Анализ временно недоступен. Проверьте подключение к API.",
+      summary: "Анализ тенге временно недоступен. Проверьте подключение к API.",
       highlights: [],
       recommendations: []
     };

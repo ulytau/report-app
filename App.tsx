@@ -1,11 +1,13 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend, AreaChart, Area 
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 import { ReportData, AIInsight } from './types';
 import { processSalesData } from './utils/dataProcessor';
@@ -16,8 +18,11 @@ import KPICard from './components/KPICard';
 const App: React.FC = () => {
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [insights, setInsights] = useState<AIInsight | null>(null);
+  
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -63,8 +68,41 @@ const App: React.FC = () => {
     }
   };
 
+  const handleExportPDF = async () => {
+    if (!reportRef.current) return;
+    
+    setExporting(true);
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f8fafc' // slate-50 matches our body bg
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [canvas.width / 2, canvas.height / 2]
+      });
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.save('CafeInsight_Report.pdf');
+    } catch (err) {
+      console.error('PDF Export Error:', err);
+      alert('Ошибка при генерации PDF');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'KZT', maximumFractionDigits: 0 }).format(val);
+    return new Intl.NumberFormat('kk-KZ', { 
+      style: 'currency', 
+      currency: 'KZT', 
+      maximumFractionDigits: 0 
+    }).format(val);
   };
 
   return (
@@ -78,11 +116,27 @@ const App: React.FC = () => {
             </div>
             <h1 className="text-xl font-bold text-slate-800 tracking-tight">CafeInsight</h1>
           </div>
-          <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-all flex items-center space-x-2 shadow-sm">
-            <i className="fas fa-file-upload"></i>
-            <span>Загрузить данные</span>
-            <input type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} />
-          </label>
+          <div className="flex items-center space-x-3">
+            {data && (
+              <button 
+                onClick={handleExportPDF}
+                disabled={exporting}
+                className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2 rounded-xl text-sm font-semibold transition-all flex items-center space-x-2 shadow-sm disabled:opacity-50"
+              >
+                {exporting ? (
+                  <i className="fas fa-spinner animate-spin"></i>
+                ) : (
+                  <i className="fas fa-file-pdf text-red-500"></i>
+                )}
+                <span>{exporting ? 'Генерация...' : 'Экспорт в PDF'}</span>
+              </button>
+            )}
+            <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-all flex items-center space-x-2 shadow-sm">
+              <i className="fas fa-file-upload"></i>
+              <span>Загрузить данные</span>
+              <input type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} />
+            </label>
+          </div>
         </div>
       </header>
 
@@ -93,7 +147,7 @@ const App: React.FC = () => {
               <i className="fas fa-file-csv text-5xl"></i>
             </div>
             <h2 className="text-2xl font-bold text-slate-800 mb-2">Добро пожаловать в CafeInsight</h2>
-            <p className="text-slate-500 max-w-md">Загрузите файл Excel или CSV с продажами вашего кафе, чтобы получить детальный отчет и умные советы по развитию бизнеса.</p>
+            <p className="text-slate-500 max-w-md">Загрузите файл Excel или CSV с продажами вашего кафе, чтобы получить детальный отчет и умные советы по развитию бизнеса в KZT.</p>
           </div>
         )}
 
@@ -115,7 +169,7 @@ const App: React.FC = () => {
         )}
 
         {data && (
-          <div className="space-y-8 animate-in fade-in duration-700">
+          <div ref={reportRef} id="report-container" className="space-y-8 animate-in fade-in duration-700 p-4 -m-4">
             {/* KPI Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <KPICard title="Общая Выручка" value={formatCurrency(data.totalRevenue)} icon="fa-wallet" color="bg-emerald-500" />
@@ -279,7 +333,7 @@ const App: React.FC = () => {
 
       {/* Footer */}
       <footer className="mt-12 text-center text-slate-400 text-xs">
-        <p>&copy; {new Date().getFullYear()} CafeInsight. Разработано для администраторов кофейни.</p>
+        <p>&copy; {new Date().getFullYear()} CafeInsight. Разработано для администраторов кофейни. Все расчеты в KZT.</p>
       </footer>
     </div>
   );
