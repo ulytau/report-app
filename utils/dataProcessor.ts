@@ -78,13 +78,22 @@ export const processSalesData = (data: any[]): ReportData => {
     }
   });
 
-  // By Hour
+  // By Hour (Ensuring all 24 hours are present)
   const hourMap: Record<number, number> = {};
+  for (let i = 0; i < 24; i++) {
+    hourMap[i] = 0;
+  }
+  
   records.forEach(r => {
-    if (r.hour !== undefined) {
-      hourMap[r.hour] = (hourMap[r.hour] || 0) + r.revenue;
+    if (r.hour !== undefined && r.hour >= 0 && r.hour < 24) {
+      hourMap[r.hour] += r.revenue;
     }
   });
+
+  const revenueByHour = Array.from({ length: 24 }, (_, i) => ({
+    hour: `${i}:00`,
+    value: hourMap[i]
+  }));
 
   // Products
   const prodRevMap: Record<string, number> = {};
@@ -115,7 +124,7 @@ export const processSalesData = (data: any[]): ReportData => {
     totalItems,
     revenueByDay: DAYS_RU.map(d => ({ day: d, value: dayRevMap[d] })),
     transactionsByDay: DAYS_RU.map(d => ({ day: d, value: dayTxMap[d] })),
-    revenueByHour: Object.entries(hourMap).sort((a, b) => Number(a[0]) - Number(b[0])).map(([h, v]) => ({ hour: `${h}:00`, value: v })),
+    revenueByHour,
     topProductsByRevenue,
     topProductsByQty,
     productShare: productShare.slice(0, 7).concat(productShare.length > 7 ? [{ name: 'Other', value: productShare.slice(7).reduce((a, b) => a + b.value, 0) }] : []),
