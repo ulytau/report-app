@@ -1,0 +1,5 @@
+{
+  "name": "Cafe Insight - Simple Sales Reporter",
+  "description": "A professional sales reporting tool for cafe administrators. Upload CSV/Excel data to get instant visualizations, KPIs, and AI-powered business insights using Gemini.",
+  "requestFramePermissions": []
+}
