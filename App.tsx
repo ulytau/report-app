@@ -1,19 +1,19 @@
 
-import React, { useState, useCallback, useRef } from 'react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, Legend, AreaChart, Area, LabelList 
-} from 'recharts';
-import * as XLSX from 'xlsx';
-import Papa from 'papaparse';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import React, { useRef, useState } from 'react';
 
-import { ReportData, AIInsight } from './types';
-import { processSalesData } from './utils/dataProcessor';
-import { getAIInsights } from './services/geminiService';
-import { CHART_COLORS } from './constants';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
+import HourlyActivityChart from './components/HourlyActivityChart';
+import ProductShareChart from './components/ProductShareChart';
+import RevenueChart from './components/RevenueChart';
+import TopProductsChart from './components/TopProductsChart';
+
 import KPICard from './components/KPICard';
+import { getAIInsights } from './services/geminiService';
+import { AIInsight, ReportData } from './types';
+import { processSalesData } from './utils/dataProcessor';
 
 type TabType = 'overview' | 'hourly';
 
@@ -268,93 +268,13 @@ const App: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Day of Week - With Static Labels */}
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-                <h4 className="font-black text-slate-800 mb-8 flex items-center justify-between uppercase tracking-tight">
-                  <span>Выручка по дням</span>
-                  <i className="fas fa-calendar-alt text-slate-200 text-2xl"></i>
-                </h4>
-                <div className="h-80 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data.revenueByDay} margin={{ top: 25, right: 10, left: 10, bottom: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13, fontWeight: 700 }} />
-                      <YAxis hide />
-                      <Tooltip 
-                        cursor={{ fill: '#f8fafc' }}
-                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', padding: '12px' }}
-                        formatter={(value: number) => [formatCurrency(value), 'Выручка']}
-                      />
-                      <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={40}>
-                        <LabelList dataKey="value" position="top" formatter={formatLabelValue} style={{ fill: '#475569', fontSize: 11, fontWeight: 800 }} offset={8} />
-                        {data.revenueByDay.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
+              <RevenueChart data={data.revenueByDay} formatCurrency={formatCurrency} formatLabelValue={formatLabelValue} />
 
               {/* Product Share - With Static Labels */}
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-                <h4 className="font-black text-slate-800 mb-8 flex items-center justify-between uppercase tracking-tight">
-                  <span>Доля товаров</span>
-                  <i className="fas fa-chart-pie text-slate-200 text-2xl"></i>
-                </h4>
-                <div className="h-80 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={data.productShare}
-                        cx="50%"
-                        cy="45%"
-                        innerRadius={65}
-                        outerRadius={95}
-                        paddingAngle={4}
-                        dataKey="value"
-                        stroke="#fff"
-                        strokeWidth={4}
-                        label={({ name, value }) => `${name}: ${formatLabelValue(value)}`}
-                        labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
-                      >
-                        {data.productShare.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', padding: '12px' }}
-                        formatter={(value: number) => [formatCurrency(value), '']}
-                      />
-                      <Legend verticalAlign="bottom" height={40} iconType="circle" wrapperStyle={{ fontWeight: 700, fontSize: '11px', paddingTop: '10px' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
+              <ProductShareChart data={data.productShare} formatCurrency={formatCurrency} formatLabelValue={formatLabelValue} />
 
               {/* Top Products Revenue - With Static Labels */}
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 lg:col-span-2">
-                <h4 className="font-black text-slate-800 mb-10 uppercase tracking-tight">ТОП-10 товаров по выручке</h4>
-                <div className="h-[450px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data.topProductsByRevenue} layout="vertical" margin={{ top: 5, right: 60, left: 60, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                      <XAxis type="number" hide />
-                      <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 700 }} width={140} />
-                      <Tooltip 
-                        cursor={{ fill: '#f8fafc' }}
-                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', padding: '12px' }}
-                        formatter={(value: number) => [formatCurrency(value), 'Выручка']}
-                      />
-                      <Bar dataKey="value" fill="#6366f1" radius={[0, 8, 8, 0]} barSize={24}>
-                        <LabelList dataKey="value" position="right" formatter={formatLabelValue} style={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} offset={10} />
-                        {data.topProductsByRevenue.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
+              <TopProductsChart data={data.topProductsByRevenue} formatCurrency={formatCurrency} formatLabelValue={formatLabelValue} />
             </div>
           </div>
         )}
@@ -376,68 +296,11 @@ const App: React.FC = () => {
               />
             </div>
 
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Почасовая активность (24 часа)</h3>
-                  <p className="text-slate-500 text-sm font-medium">Распределение выручки по времени суток</p>
-                </div>
-                <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-inner">
-                  <i className="fas fa-clock text-2xl"></i>
-                </div>
-              </div>
-              
-              <div className="h-[500px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data.revenueByHour} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
-                    <defs>
-                      <linearGradient id="colorRevHourly" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis 
-                      dataKey="hour" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fill: '#475569', fontSize: 12, fontWeight: 800 }} 
-                      interval={0}
-                    />
-                    <YAxis 
-                      tickFormatter={(val) => `${val / 1000}k`}
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 15px 35px rgba(0,0,0,0.15)', padding: '14px' }}
-                      formatter={(value: number) => [formatCurrency(value), 'Выручка']}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="value" 
-                      stroke="#6366f1" 
-                      strokeWidth={5} 
-                      fillOpacity={1} 
-                      fill="url(#colorRevHourly)" 
-                      animationDuration={1500}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="mt-12 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-                {data.revenueByHour.map((h, i) => (
-                  <div key={i} className={`flex items-center justify-between p-3 rounded-2xl border transition-colors ${h.value === busiestHour?.value ? 'bg-indigo-100 border-indigo-200 shadow-sm' : 'bg-slate-50 border-slate-100 hover:bg-indigo-50'}`}>
-                    <span className={`text-[11px] font-black ${h.value === busiestHour?.value ? 'text-indigo-600' : 'text-slate-400'}`}>{h.hour}</span>
-                    <span className={`text-xs font-black ${h.value === busiestHour?.value ? 'text-indigo-800' : 'text-slate-700'}`}>
-                      {h.value > 0 ? (h.value >= 1000 ? `${(h.value/1000).toFixed(1)}k` : Math.round(h.value)) : '-'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <HourlyActivityChart 
+              data={data.revenueByHour} 
+              busiestHour={busiestHour || null} 
+              formatCurrency={formatCurrency} 
+            />
           </div>
         )}
       </main>

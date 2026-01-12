@@ -38,8 +38,8 @@ export const processSalesData = (data: any[]): ReportData => {
     } else if (dateObj && !isNaN(dateObj.getTime())) {
       hour = dateObj.getHours();
     } else {
-      // Dummy hour if not found
-      hour = Math.floor(Math.random() * (22 - 8) + 8);
+      // Hour not found
+      hour = undefined;
     }
 
     let dayName = "Пн";
@@ -47,8 +47,8 @@ export const processSalesData = (data: any[]): ReportData => {
       const enDay = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
       dayName = DAYS_EN_MAP[enDay] || "Пн";
     } else {
-      // Random day if missing date
-      dayName = DAYS_RU[Math.floor(Math.random() * 7)];
+      // Day not found
+      dayName = "Unknown";
     }
 
     return {
@@ -72,7 +72,7 @@ export const processSalesData = (data: any[]): ReportData => {
   const dayTxMap: Record<string, number> = {};
   DAYS_RU.forEach(d => { dayRevMap[d] = 0; dayTxMap[d] = 0; });
   records.forEach(r => {
-    if (r.dayOfWeek) {
+    if (r.dayOfWeek && r.dayOfWeek !== "Unknown") {
       dayRevMap[r.dayOfWeek] += r.revenue;
       dayTxMap[r.dayOfWeek] += 1;
     }
