@@ -1,7 +1,7 @@
 
-import React from 'react';
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
-import { CHART_COLORS } from '../constants';
+import React from 'react'
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { CHART_COLORS } from '../constants'
 
 interface ProductShareChartProps {
   data: { name: string; value: number }[];
@@ -29,11 +29,30 @@ const ProductShareChart: React.FC<ProductShareChartProps> = ({ data, formatCurre
               dataKey="value"
               stroke="#fff"
               strokeWidth={4}
-              label={({ name, value }) => `${name}: ${formatLabelValue(value)}`}
-              labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
+              isAnimationActive={false}
+              label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) => {
+                const RADIAN = Math.PI / 180;
+                const radius = outerRadius + 25; // Push label out further
+                const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                
+                return (
+                  <text 
+                    x={x} 
+                    y={y} 
+                    fill="#1e293b" 
+                    textAnchor={x > cx ? 'start' : 'end'} 
+                    dominantBaseline="central"
+                    style={{ fontSize: '11px', fontWeight: '800', fontFamily: 'sans-serif' }}
+                  >
+                    {`${name} (${(percent * 100).toFixed(0)}%)`}
+                  </text>
+                );
+              }}
+              labelLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} stroke={CHART_COLORS[index % CHART_COLORS.length]} />
               ))}
             </Pie>
             <Tooltip 

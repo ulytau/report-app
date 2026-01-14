@@ -1,19 +1,19 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react'
 
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
-import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
-import HourlyActivityChart from './components/HourlyActivityChart';
-import ProductShareChart from './components/ProductShareChart';
-import RevenueChart from './components/RevenueChart';
-import TopProductsChart from './components/TopProductsChart';
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
+import Papa from 'papaparse'
+import * as XLSX from 'xlsx'
+import HourlyActivityChart from './components/HourlyActivityChart'
+import ProductShareChart from './components/ProductShareChart'
+import RevenueChart from './components/RevenueChart'
+import TopProductsChart from './components/TopProductsChart'
 
-import KPICard from './components/KPICard';
-import { getAIInsights } from './services/geminiService';
-import { AIInsight, ReportData } from './types';
-import { processSalesData } from './utils/dataProcessor';
+import KPICard from './components/KPICard'
+import { getAIInsights } from './services/geminiService'
+import { AIInsight, ReportData } from './types'
+import { processSalesData } from './utils/dataProcessor'
 
 type TabType = 'overview' | 'hourly';
 
@@ -78,10 +78,11 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
 
     try {
-      await new Promise(r => setTimeout(r, 150));
+      // Increased delay to ensure Recharts animations are finished
+      await new Promise(r => setTimeout(r, 2000));
 
       const canvas = await html2canvas(reportRef.current, {
-        scale: 2.5,
+        scale: 2, // Slightly reduced scale for better performance with large content
         useCORS: true,
         logging: false,
         backgroundColor: '#f8fafc',
@@ -90,14 +91,30 @@ const App: React.FC = () => {
       });
       
       const imgData = canvas.toDataURL('image/png', 1.0);
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'px',
-        format: [canvas.width / 2.5, canvas.height / 2.5]
-      });
       
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2.5, canvas.height / 2.5);
-      pdf.save(`CafeInsight_${activeTab === 'overview' ? 'Overview' : 'Hourly'}.pdf`);
+      // PDF Dimensions (A4)
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add subsequent pages if content overflows
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight; // Shift the image up
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      const dateStr = new Date().toLocaleDateString('ru-RU');
+      pdf.save(`CafeInsight_[${dateStr}].pdf`);
     } catch (err) {
       console.error('PDF Export Error:', err);
       alert('Ошибка при генерации PDF');
@@ -150,7 +167,7 @@ const App: React.FC = () => {
                 ) : (
                   <i className="fas fa-file-pdf text-red-500"></i>
                 )}
-                <span>{exporting ? 'Генерация...' : 'Экспорт в PDF'}</span>
+                <span>{exporting ? 'Генерация отчета...' : 'Полный отчет (PDF)'}</span>
               </button>
             )}
             <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-2 shadow-sm active:scale-95">
@@ -184,7 +201,7 @@ const App: React.FC = () => {
         )}
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 mt-8">
+      <main ref={reportRef} className="max-w-7xl mx-auto px-4 mt-8">
         {!data && !loading && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="w-24 h-24 bg-white rounded-3xl shadow-sm flex items-center justify-center mb-6 text-slate-200 border border-slate-100">
@@ -217,8 +234,10 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {data && activeTab === 'overview' && (
-          <div ref={reportRef} id="overview-report" className="space-y-8 animate-in fade-in duration-700 p-4 -m-4">
+        {/* Overview Section - Visible if active OR exporting */}
+        {data && (activeTab === 'overview' || exporting) && (
+          <div id="overview-report" className="space-y-8 animate-in fade-in duration-700 p-4 -m-4">
+             {exporting && <div className="text-center mb-8"><h2 className="text-2xl font-black text-slate-800 uppercase tracking-widest">Общий отчет</h2></div>}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <KPICard title="Общая Выручка" value={formatCurrency(data.totalRevenue)} icon="fa-wallet" color="bg-emerald-500" />
               <KPICard title="Чеков всего" value={data.totalTransactions.toLocaleString()} icon="fa-receipt" color="bg-sky-500" />
@@ -279,8 +298,13 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {data && activeTab === 'hourly' && (
-          <div ref={reportRef} id="hourly-report" className="space-y-8 animate-in slide-in-from-right duration-500 p-4 -m-4">
+        {/* Separator for PDF export */}
+        {exporting && <div className="h-20 break-before-page"></div>}
+
+        {/* Hourly Section - Visible if active OR exporting */}
+        {data && (activeTab === 'hourly' || exporting) && (
+          <div id="hourly-report" className="space-y-8 animate-in slide-in-from-right duration-500 p-4 -m-4">
+             {exporting && <div className="text-center mb-8"><h2 className="text-2xl font-black text-slate-800 uppercase tracking-widest">Почасовой анализ</h2></div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <KPICard 
                 title="Пиковый час" 
