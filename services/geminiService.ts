@@ -1,9 +1,12 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { ReportData, AIInsight } from "../types";
+import { AIInsight, ReportData } from "../types";
 
-export const getAIInsights = async (data: ReportData): Promise<AIInsight> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+export const getAIInsights = async (data: ReportData): Promise<AIInsight | null> => {
+  const apiKey = process.env.API_KEY || '';
+  if (!apiKey) return null;
+
+  const ai = new GoogleGenAI({ apiKey });
 
   // Create copies before sorting to avoid mutating the original data object
   const sortedHours = [...data.revenueByHour].sort((a, b) => b.value - a.value);
@@ -56,11 +59,7 @@ export const getAIInsights = async (data: ReportData): Promise<AIInsight> => {
       recommendations: result.recommendations || []
     };
   } catch (error) {
-    console.error("AI Insight Error:", error);
-    return {
-      summary: "Анализ тенге временно недоступен. Проверьте подключение к API.",
-      highlights: [],
-      recommendations: []
-    };
+    console.warn("AI Insight Error (suppressed):", error);
+    return null;
   }
 };

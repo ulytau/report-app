@@ -1,6 +1,6 @@
 
-import { SaleRecord, ReportData } from '../types';
-import { DAYS_RU, DAYS_EN_MAP } from '../constants';
+import { DAYS_EN_MAP, DAYS_RU } from '../constants';
+import { ReportData, SaleRecord } from '../types';
 
 const findColumn = (headers: string[], candidates: string[]): string | undefined => {
   return headers.find(h => 
@@ -127,7 +127,7 @@ export const processSalesData = (data: any[]): ReportData => {
     revenueByHour,
     topProductsByRevenue,
     topProductsByQty,
-    productShare: productShare.slice(0, 7).concat(productShare.length > 7 ? [{ name: 'Other', value: productShare.slice(7).reduce((a, b) => a + b.value, 0) }] : []),
+    productShare: productShare.slice(0, 7).concat(productShare.length > 7 ? [{ name: 'Другое', value: productShare.slice(7).reduce((a, b) => a + b.value, 0) }] : []),
     rawRecords: records
   };
 };

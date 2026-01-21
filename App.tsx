@@ -24,6 +24,9 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [insights, setInsights] = useState<AIInsight | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualText, setManualText] = useState('');
+
   
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +72,29 @@ const App: React.FC = () => {
     } else {
       reader.readAsBinaryString(file);
     }
+  };
+
+  const handleManualSubmit = () => {
+    if (!manualText.trim()) return;
+    
+    // Simple parser: assumes 3 lines for summary, highlights, recommendations
+    const lines = manualText.split('\n').filter(l => l.trim());
+    const summary = lines[0] || "Ручной анализ";
+    // Try to find sections or just split roughly
+    const highlights = lines.filter(l => l.startsWith('-') || l.startsWith('•') || l.startsWith('+')).slice(0, 3).map(l => l.replace(/^[-•+]\s*/, ''));
+    
+    // If no specific bullets found, take next lines
+    const recsStartIndex = lines.findIndex(l => l.toLowerCase().includes('совет') || l.toLowerCase().includes('рекоменд'));
+    const recommendations = recsStartIndex > -1 
+      ? lines.slice(recsStartIndex + 1).map(l => l.replace(/^[-•+]\d*\.?\s*/, ''))
+      : lines.slice(1).filter(l => !highlights.includes(l.replace(/^[-•+]\s*/, ''))).slice(0, 3);
+
+    setInsights({
+      summary,
+      highlights: highlights.length ? highlights : ["Highlights placeholder"],
+      recommendations: recommendations.length ? recommendations : ["Recommendations placeholder"]
+    });
+    setShowManualInput(false);
   };
 
   const handleExportPDF = async () => {
@@ -157,18 +183,28 @@ const App: React.FC = () => {
           </div>
           <div className="flex items-center space-x-3">
             {data && (
-              <button 
-                onClick={handleExportPDF}
-                disabled={exporting}
-                className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-2 shadow-sm disabled:opacity-50 active:scale-95"
-              >
-                {exporting ? (
-                  <i className="fas fa-circle-notch animate-spin"></i>
-                ) : (
-                  <i className="fas fa-file-pdf text-red-500"></i>
-                )}
-                <span>{exporting ? 'Генерация отчета...' : 'Полный отчет (PDF)'}</span>
-              </button>
+              <>
+                <button
+                  onClick={() => setShowManualInput(!showManualInput)}
+                  className="text-slate-400 hover:text-indigo-600 transition-colors tooltip"
+                  title="Режим эксперта"
+                >
+                  <i className="fas fa-user-edit"></i>
+                </button>
+
+                <button 
+                  onClick={handleExportPDF}
+                  disabled={exporting}
+                  className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-2 shadow-sm disabled:opacity-50 active:scale-95"
+                >
+                  {exporting ? (
+                    <i className="fas fa-circle-notch animate-spin"></i>
+                  ) : (
+                    <i className="fas fa-file-pdf text-red-500"></i>
+                  )}
+                  <span>{exporting ? 'Генерация отчета...' : 'Полный отчет (PDF)'}</span>
+                </button>
+              </>
             )}
             <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-2 shadow-sm active:scale-95">
               <i className="fas fa-file-upload"></i>
@@ -177,6 +213,33 @@ const App: React.FC = () => {
             </label>
           </div>
         </div>
+        
+        {/* Manual Input Panel */}
+        {showManualInput && (
+          <div className="absolute top-16 right-0 m-4 w-96 bg-white shadow-xl rounded-2xl p-4 border border-indigo-100 z-50 animate-in slide-in-from-top-2">
+            <h3 className="font-bold text-slate-700 mb-2">Экспертный комментарий</h3>
+            <textarea
+              className="w-full h-48 p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
+              placeholder="Введите анализ вручную...&#10;1 строка - Общее резюме&#10;- Плюс 1&#10;- Плюс 2&#10;- Плюс 3&#10;Рекомендации:&#10;- Совет 1&#10;- Совет 2&#10;- Совет 3"
+              value={manualText}
+              onChange={(e) => setManualText(e.target.value)}
+            ></textarea>
+            <div className="flex justify-end mt-3 space-x-2">
+              <button 
+                onClick={() => setShowManualInput(false)}
+                className="text-slate-400 text-xs font-bold hover:text-slate-600 px-3 py-2"
+              >
+                Отмена
+              </button>
+              <button 
+                onClick={handleManualSubmit}
+                className="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-indigo-700 shadow-sm"
+              >
+                Применить
+              </button>
+            </div>
+          </div>
+        )}
         
         {/* Tabs */}
         {data && (
@@ -298,8 +361,8 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Separator for PDF export */}
-        {exporting && <div className="h-20 break-before-page"></div>}
+        {/* Separator for PDF export - Forces a clean page break */}
+        {exporting && <div className="h-8 w-full" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}></div>}
 
         {/* Hourly Section - Visible if active OR exporting */}
         {data && (activeTab === 'hourly' || exporting) && (
