@@ -1,20 +1,49 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# ☕ CafeInsight (MVP)
 
-# Run and deploy your AI Studio app
+An intelligent analytics dashboard for cafe owners to visualize sales data and get AI-powered business advice.
 
-This contains everything you need to run your app locally.
+Built as a prototype to demonstrate the power of combining simple Excel data with Gemini AI.
 
+![CafeInsight Screenshot](https://placehold.co/1200x600/indigo/white?text=CafeInsight+Dashboard)
 
+## ✨ key Features
 
-## Run Locally
+*   **📊 Instant Visualization**: Turns raw Excel/CSV sales logs into beautiful interactive charts (Revenue, Peak Hours, Product Mix).
+*   **🤖 AI Business Analyst**: Uses **Google Gemini** to analyze sales trends and provide 3 actionable textual recommendations (e.g., "Boost revenue by 15% via combo-offers").
+*   **✍️ Expert Mode**: Manual override mode to inject human expert advice into the final report.
+*   **📄 PDF Generation**: One-click professional PDF export for printing or sharing in WhatsApp (includes smart page breaks).
+*   **🔒 Local & Private**: Processes data locally in the browser.
 
-**Prerequisites:**  Node.js
+## 🛠 Tech Stack
 
+*   **Frontend**: React (Vite) + TypeScript
+*   **Styling**: TailwindCSS + FontAwesome
+*   **Charts**: Recharts
+*   **AI**: Google Generative AI SDK (Gemini)
+*   **PDF**: html2canvas + jsPDF
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🚀 How to Run
+
+1.  **Clone the repo**
+    ```bash
+    git clone https://github.com/ulytau/report-app.git
+    cd report-app
+    ```
+
+2.  **Install dependencies**
+    ```bash
+    npm install
+    ```
+
+3.  **Start Development Server**
+    ```bash
+    npm run dev
+    ```
+
+4.  **Open Browser**
+    Go to `http://localhost:3000`
+
+## 📁 Project Status
+
+**Status: Archived (MVP Completed)**
+This project served as a successful proof-of-concept for an AI-driven SaaS report generator.

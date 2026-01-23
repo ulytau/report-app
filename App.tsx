@@ -147,11 +147,8 @@ const App: React.FC = () => {
       await addSectionToPDF('overview-report', false);
       await addSectionToPDF('hourly-report', true);
       
-      // Add timestamp to ensure user sees new file
-      const date = new Date();
-      const dateStr = date.toLocaleDateString('ru-RU');
-      const timeStr = date.toLocaleTimeString('ru-RU').replace(/:/g, '-');
-      pdf.save(`CafeInsight_${dateStr}_${timeStr}.pdf`);
+      const dateStr = new Date().toLocaleDateString('ru-RU');
+      pdf.save(`CafeInsight_[${dateStr}].pdf`);
     } catch (err) {
       console.error('PDF Export Error:', err);
       alert('Ошибка при генерации PDF');
