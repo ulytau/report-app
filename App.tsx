@@ -98,53 +98,65 @@ const App: React.FC = () => {
   };
 
   const handleExportPDF = async () => {
-    if (!reportRef.current) return;
-    
     setExporting(true);
-    window.scrollTo(0, 0);
-
+    
     try {
-      // Increased delay to ensure Recharts animations are finished
+      // Wait for re-render
       await new Promise(r => setTimeout(r, 2000));
 
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2, // Slightly reduced scale for better performance with large content
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#f8fafc',
-        windowWidth: reportRef.current.scrollWidth,
-        windowHeight: reportRef.current.scrollHeight,
-      });
-      
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      
-      // PDF Dimensions (A4)
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      let heightLeft = imgHeight;
-      let position = 0;
+      const pageWidth = 210; 
+      const pageHeight = 297; 
 
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      const addSectionToPDF = async (elementId: string, startOnNewPage: boolean) => {
+        const element = document.getElementById(elementId);
+        if (!element) return;
 
-      // Add subsequent pages if content overflows
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight; // Shift the image up
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        // Ensure element is visible in viewport for better capture
+        element.scrollIntoView({ behavior: 'instant', block: 'start' });
+        await new Promise(r => setTimeout(r, 500)); // Short wait after scroll
+
+        if (startOnNewPage) {
+          pdf.addPage();
+        }
+
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#f8fafc',
+          scrollY: -window.scrollY, // Critical for correct capturing after scroll
+        });
+
+        const imgData = canvas.toDataURL('image/png', 1.0);
+        const imgHeight = (canvas.height * pageWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
         heightLeft -= pageHeight;
-      }
+
+        while (heightLeft >= 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+      };
+
+      await addSectionToPDF('overview-report', false);
+      await addSectionToPDF('hourly-report', true);
       
-      const dateStr = new Date().toLocaleDateString('ru-RU');
-      pdf.save(`CafeInsight_[${dateStr}].pdf`);
+      // Add timestamp to ensure user sees new file
+      const date = new Date();
+      const dateStr = date.toLocaleDateString('ru-RU');
+      const timeStr = date.toLocaleTimeString('ru-RU').replace(/:/g, '-');
+      pdf.save(`CafeInsight_${dateStr}_${timeStr}.pdf`);
     } catch (err) {
       console.error('PDF Export Error:', err);
       alert('Ошибка при генерации PDF');
     } finally {
+      window.scrollTo(0, 0); // Restore scroll
       setExporting(false);
     }
   };
@@ -361,8 +373,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Separator for PDF export - Forces a clean page break */}
-        {exporting && <div className="h-8 w-full" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}></div>}
+
 
         {/* Hourly Section - Visible if active OR exporting */}
         {data && (activeTab === 'hourly' || exporting) && (
